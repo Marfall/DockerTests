@@ -1,0 +1,90 @@
+https://github.com/in28minutes/docker-crash-course    - репозиторий с материалами
+
+https://docs.docker.com/    - official documentation
+
+hub.docker.com   - Docker Registry  - contains repositories
+
+docker run in28min/todo-rest-api-h2:1.0.0.RELEASE' locally
+
+    - when we ran this command, this image was downloaded to our machine,
+      so,the local image was created and once the image is downloaded,it is ran as an applicaton
+      on local machine.
+
+      - image - set of bytes - static version
+      - container - set of bytes - running version
+
+ By default, any container that you run - is a part of something called Bridge Network in Docker
+ - internal docker Network
+
+ docker run -p 5000:5000 in28minutes/rest:1.0.0.0.RELEASE
+
+ -take  the internal port, the container port 5000 and map it to a host port, through 
+  a port on the system where the container is running, which is 5000. 
+
+ docker run -p -d 5000:5000 in28minutes/rest:1.0.0.0.RELEASE
+
+ -d  -  detach mode   - фоновый режим - сервер ответит идентификатором контейнеа
+        иначе консоль подключена к стандартному вводу
+
+ docker logs c9b5 (id)
+
+ docker container ls    -  посмотреть запущенные контейнеры
+
+ docker images  -  images, presented on local machine
+
+ docker container ls -a   -   показать контейнеры, не зависимо от статуса (running and stopped)
+
+ docker container stop  id  -  stop container
+
+
+DOCKER ARCHITECTURE:
+
+    Docker Client  - the place we are running comands in;
+
+    Docker Daemon  -  when we type something om docker Client, the command is sent out to something,
+                      called a Docker Daemon(Docker Engine) for execution;
+
+    => Even local installation of Docker  uses a lient-server architecture
+
+    => Daemon is responsible for managing containers, local images, and
+       responsible for pulling something from the  image registry or 
+       pushing a locally created image to a image repository
+
+
+    AWS provides a service called Elastic Container Service
+
+    docker tag in28min/todo-rest-api-h2:1.0.0.0.RELEASE  in28min/todo-rest-api-h2:latest
+
+        - создать тэг на image 
+
+
+    docker pull mysql - спулить mysql с репозитория 
+
+    docker pull - just download the image from the registry to your local,
+                  does not run it.
+
+    docker search mysql - find all repos, that contains "mysql"
+
+    Official Images - a curated set of Docker repositories
+
+    sudo docker image history  3a5e53f63281  -  show  repo-history
+
+
+
+
+
+
+
+
+
+
+
+    
+
+    
+
+
+
+
+
+
