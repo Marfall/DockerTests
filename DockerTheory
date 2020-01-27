@@ -65,9 +65,96 @@ DOCKER ARCHITECTURE:
 
     docker search mysql - find all repos, that contains "mysql"
 
+
     Official Images - a curated set of Docker repositories
 
-    sudo docker image history  3a5e53f63281  -  show  repo-history
+    sudo docker image history  3a5e53f63281  -  show  repo-history of image
+
+    sudo docker image inspect 3a5e53f63281  - full info
+
+    sudo docker image remove 3a5e53f63281  -  remove image from local
+
+    docker images - show all images in local
+
+    docker container pause id   -  stops the container in this specigic state
+
+    docker logs -f  id     -   get logs for container
+
+    docker container inspect id - details of container 
+
+    docker container prune   -  this would remove all the stopped containers
+
+    docker container kill id    - immediately stops
+
+    docker run -p 5000:5000 -d --restart=always in28min/todo-rest-api:0.0.1-SNAPSHOT   - restart automatically
+
+    docker container stop id   - stop container 
+
+    docker events   - show container events  - what's happening in the background 
+
+    docker top id  -  check what is the top process which is running in a specific container
+
+    docker stats    - show all the stats regarding the containers which are running
+
+     docker run -p 5001:5000 -m 512m --cpu-quota 50000 -d --restart=always in28min/todo-rest-api:0.0.1-SNAPSHOT
+
+        -   quoted memory and CPU
+
+    docker system df    -  show resources, are being managed by Docker Daemon
+
+
+    CREATING IMAGES:
+
+    - Build a JAR  <packaging>jar</packaging>
+
+        /target/hello-world-rest-api.jar
+
+        
+    - Setup the Prerequisites for Running the JAR 
+        - openjdk:8-jdk-alpine
+
+        1) go to project directory in terminal 
+        2) sudo docker run -dit openjdk:8-jdk-alpine    (download if no locally)
+            -d - detach mode  -dit - aloow us to run a few commands against the running container
+
+        3) Now we have an ID of Image
+        
+        sudo docker container exec thirsty_fermat ls /tmp   
+             - create /tmp directory for exec
+
+        sudo docker container cp target/hello-world-rest-api.jar thirsty_fermat:/tmp 
+             - copy jar to exec docker directory
+
+        sudo docker container exec thirsty_fermat ls /tmp
+             - see JAR in the directory
+        
+        sudo docker container commit thirsty_fermat in28min/hello-world-rest-api:manual1
+             - save the image (return ID)
+
+        sudo docker container commit --change='CMD ["java","-jar","/tmp/hello-world-rest-api.jar"]' thirsty_fermat  in28min/hello-world-rest-api:manual2
+             - add a startup command
+
+        sudo docker run -p 8080:8080 in28min/hello-world-rest-api:manual2
+            - run container from terminal
+
+
+
+
+    - Copy the JAR into this specific image \
+    - Run the JAR as part of container
+
+    mvn clean package   -  build JAR  (in target)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
