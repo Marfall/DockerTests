@@ -137,20 +137,191 @@ DOCKER ARCHITECTURE:
         sudo docker run -p 8080:8080 in28min/hello-world-rest-api:manual2
             - run container from terminal
 
-
-
-
     - Copy the JAR into this specific image \
-    - Run the JAR as part of container
+        - Run the JAR as part of container
 
-    mvn clean package   -  build JAR  (in target)
+        mvn clean package   -  build JAR  (in target)
+
+        chown jerry demo.txt    - change directory/file owner
+
+        exec  - execute command on a running container.
+
+        docker container commit - it takes a running container and it creates an image with
+                                   a specific name and tag.
+        
+        --change (option of commit) -  set up te command which needs to run at the startup of any container 
+                                       based on this specific image.
+
+        Order of manual containerizing:
+        
+        - We build a JAR , ran OpenJDK Alpine container.
+        - After thet we copied app-rest-api.jar into the temp folder inside the running container.
+        - The we set up the CMD - setting up the commands, which needs to be executed when container is being
+          launched up.
+        - Finally, we were able to run the container from the image we had created.
 
 
 
 
+    BUILD DOCKER IMAGE USING DOCKERFILE:
+
+    FROM openjdk:8-jdk-alpine
+    ADD target/hello-world-rest-api.jar hello-world-rest-api.jar
+    ENTRYPOINT ["sh", "-c", "java -jar /hello-world-rest-api.jar"]
+
+    we took jdk-alpine and executed the ADD instruction
+
+    => There are instructions which add new files tot the image and
+       there are istructions  adding just zero data which says which command must be execute on the image
+       when container is  created from it.
+
+       Docker using a cache (already created image from the previous command)
+
+    - go to project directory:
+
+    open .                                                                      - открыть контекст
+    sudo docker build -t in2min/hello-world-rest-api:dockerfile1 .              - построить
+    sudo docker run -p 8080:8080 in2min/hello-world-rest-api:dockerfile1        - запустить контейнер
 
 
 
+    docker history in2min/hello-world-rest-api:dockerfile1   - container history
+
+    EXPOSE 8080 in dockerfile  - the container would run on port 8080 (not published and not available in the host)
+
+    mvn pakage -DskipTests  -  пропустить тесты при сборке 
+
+    - dockerfile-maven-plugin - integrates maven build process with docker
+
+        - When I run a "mvn package" , the JAR-file will be built and also the Docker Image
+          will also be built.
+
+
+    	<plugin>
+				<groupId>com.spotify</groupId>
+				<artifactId>dockerfile-maven-plugin</artifactId>
+				<version>1.4.10</version>
+				<executions>
+					<execution>
+						<id>default</id>
+						<goals>
+							<goal>build</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<repository>in28min/${project.name}</repository>            // image name
+					<tag>${project.version}</tag>                               // tag
+					<skipDockerInfo>true</skipDockerInfo>   
+				</configuration>
+			</plugin>
+
+        
+        BUILD WITH PLUGIN:  sudo mvn package -DskipTests    -  sudo - if permissions for docker denied, from project root
+
+        RUN WITH PLUGIN:    sudo docker run -p  8080:8080 in28min/hello-world-rest-api:0.0.1-SNAPSHOT
+
+        SHOW RUNNING CONTAINER:   sudo docker container ls
+
+
+    REUSE DOCKERFILE FOR COMMON ACROSS MULTIPLE PROJECTS   (GENERIC DOCKERFILE):
+
+
+        FROM openjdk:8-jdk-alpine
+        ADD target/*.jar app.jar
+        ENTRYPOINT ["sh", "-c", "java -jar /app.jar"]
+
+
+
+    IMPROVING CACHING OF DOCKER IMAGES BY ADDING LIBRARIES IN A SEPARATE S :
+
+        Current situation:
+
+            - Fat JAR
+            - JDK 
+
+        Desired situation:
+
+            - Classes
+            - Dependencies                 //must be cached
+            - JDK                          //must be cached 
+
+
+        Fat JAR contains two things:
+            - maven dependencies;
+            - class and property files;
+
+    
+        TODO: Split FAT-JAR into it's individual components with MAVEN-DEPENDENCY-PLUGIN
+              and there is a goal called UNPACK
+
+        <plugin>	
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+                <execution>
+                    <id>unpack</id>
+                    <phase>package</phase>
+                    <goals>
+                        <goal>unpack</goal>
+                    </goals>
+                    <configuration>
+                        <artifactItems>
+                            <artifactItem>
+                                <groupId>${project.groupId}</groupId>
+                                <artifactId>${project.artifactId}</artifactId>
+                                <version>${project.version}</version>
+                            </artifactItem>
+                        </artifactItems>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+
+    BUILD WITH UNPACKING:
+
+        sudo mvn clean package  -DskipTests
+
+    And now target/dependency/BOOT-INF/lib will contain all dependency JAR-s
+
+    Now we can separate the copying of dependencies and the classes , so that 
+    the dependencies layer would be cached most of the times.
+
+    "lib" folder will be copy into the Docker Image, then classes and the META-INF
+
+    FROM openjdk:8-jdk-alpine                           //base image
+    ARG DEPENDENCY=target/dependency                    //a variable of dependency folder
+    COPY ${DEPENDENCY}/BOOT-INF/lib /app/lib            //use variable to copy 
+    COPY ${DEPENDENCY}/META-INF /app/META-INF
+    COPY ${DEPENDENCY}/BOOT-INF/classes /app
+    ENTRYPOINT ["java","-cp","app:app/lib/*","com.in28minutes.rest.webservices.restfulwebservices.RestfulWebServicesApplication"]
+
+    - sudo docker build -t in2min/hello-world-rest-api:dockerfile1 .
+    - make a change in controller for example 
+    - mvn clean package -DskipTests                     //bulid a packege
+    - sudo docker build -t in2min/hello-world-rest-api:dockerfile1 .     //build image agains
+
+    => Even for the lib diretories, the cache is being used
+       So, as long as pom.xml does not change, and we have the same dependencies, the first there
+       steps would be pulled up from the cache:
+
+    
+        Sending build context to Docker daemon  34.02MB
+            Step 1/6 : FROM openjdk:8-jdk-alpine
+            ---> a3562aa0b991
+            Step 2/6 : ARG DEPENDENCY=target/dependency
+            ---> Using cache
+            ---> 6e4fc3d8ad05
+            Step 3/6 : COPY ${DEPENDENCY}/BOOT-INF/lib /app/lib
+            ---> Using cache
+            ---> 2fd9d6c5b0dd
+            Step 4/6 : COPY ${DEPENDENCY}/META-INF /app/META-INF
+            ---> Using cache
+            ---> 65334f7230d1
+            Step 5/6 : COPY ${DEPENDENCY}/BOOT-INF/classes /app
+            ---> bcde6eba5b3a
+
+            
 
 
 
